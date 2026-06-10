@@ -1,9 +1,8 @@
 package net.hackyourfuture.backend.week6.postify.service;
 
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
 
+import net.hackyourfuture.backend.week6.postify.client.LyricsApiClient;
 import net.hackyourfuture.backend.week6.postify.dto.TrackLyrics;
 import net.hackyourfuture.backend.week6.postify.exception.LyricsNotFoundException;
 import net.hackyourfuture.backend.week6.postify.exception.TrackNotFoundException;
@@ -12,35 +11,21 @@ import net.hackyourfuture.backend.week6.postify.repository.TrackRepository;
 @Service
 public class TrackLyricsService {
     private final TrackRepository trackRepository;
-    private final RestClient lyricsRestClient;
+    private final LyricsApiClient lyricsApiClient;
 
-    public TrackLyricsService(TrackRepository trackRepository, RestClient lyricsRestClient) {
+    public TrackLyricsService(TrackRepository trackRepository, LyricsApiClient lyricsApiClient) {
         this.trackRepository = trackRepository;
-        this.lyricsRestClient = lyricsRestClient;
+        this.lyricsApiClient = lyricsApiClient;
     }
 
     public TrackLyrics getLyrics(Long trackId) {
         TrackLyrics track = trackRepository.findTrackWithArtist(trackId)
                 .orElseThrow(() -> new TrackNotFoundException(trackId));
 
-        try {
-            LyricsResponse response = lyricsRestClient.get()
-                    .uri("/{artist}/{title}", track.getArtistName(), track.getTrackTitle())
-                    .retrieve()
-                    .body(LyricsResponse.class);
+        String lyrics = lyricsApiClient.fetchLyrics(track.getArtistName(), track.getTrackTitle())
+                .orElseThrow(() -> new LyricsNotFoundException(track.getArtistName(), track.getTrackTitle()));
 
-            if (response == null || response.lyrics() == null || response.lyrics().isBlank()) {
-                throw new LyricsNotFoundException(track.getArtistName(), track.getTrackTitle());
-            }
-            track.setLyrics(response.lyrics());
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new LyricsNotFoundException(track.getArtistName(), track.getTrackTitle());
-        }
-
+        track.setLyrics(lyrics);
         return track;
-    }
-
-    // Shape of the lyrics.ovh response: {"lyrics": "..."}
-    private record LyricsResponse(String lyrics) {
     }
 }

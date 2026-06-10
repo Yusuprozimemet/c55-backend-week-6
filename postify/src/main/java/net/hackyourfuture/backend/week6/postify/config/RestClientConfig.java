@@ -9,8 +9,9 @@ import org.springframework.web.client.RestClient;
 public class RestClientConfig {
 
     @Bean
-    public RestClient lyricsRestClient(@Value("${lyrics.api.base-url}") String baseUrl) {
-        return RestClient.builder()
+    public RestClient lyricsRestClient(RestClient.Builder builder,
+                                       @Value("${lyrics.api.base-url}") String baseUrl) {
+        return builder
                 .baseUrl(baseUrl)
                 .build();
     }
