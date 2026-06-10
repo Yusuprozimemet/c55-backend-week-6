@@ -15,9 +15,23 @@ public class TrackRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    
+
     public Optional<TrackLyrics> findTrackWithArtist(Long trackId) {
-       
-        return Optional.empty();
+        String sql = """
+            SELECT tracks.track_id, tracks.track_title, artists.artist_name
+            FROM tracks
+            JOIN albums  ON albums.album_id   = tracks.album_id
+            JOIN artists ON artists.artist_id = albums.artist_id
+            WHERE tracks.track_id = ?
+            """;
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> TrackLyrics.builder()
+                        .trackId(rs.getLong("track_id"))
+                        .trackTitle(rs.getString("track_title"))
+                        .artistName(rs.getString("artist_name"))
+                        .build(),
+                trackId)
+                .stream()
+                .findFirst();
     }
 }
